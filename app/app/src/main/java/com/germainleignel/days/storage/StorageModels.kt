@@ -90,13 +90,15 @@ data class SerializableAppSettings(
     val selectedColor: SerializableColor,
     val isDarkMode: Boolean,
     val followSystemTheme: Boolean,
-    val availableColors: List<SerializableColorWithMeaning>
+    val availableColors: List<SerializableColorWithMeaning>,
+    val hasSeenOnboarding: Boolean = false
 ) {
     fun toAppSettings(): AppSettings = AppSettings(
         selectedColor = selectedColor.toColor(),
         isDarkMode = isDarkMode,
         followSystemTheme = followSystemTheme,
-        availableColors = availableColors.map { it.toColorWithMeaning() }
+        availableColors = availableColors.map { it.toColorWithMeaning() },
+        hasSeenOnboarding = hasSeenOnboarding
     )
 
     companion object {
@@ -104,7 +106,8 @@ data class SerializableAppSettings(
             selectedColor = SerializableColor.fromColor(settings.selectedColor),
             isDarkMode = settings.isDarkMode,
             followSystemTheme = settings.followSystemTheme,
-            availableColors = settings.availableColors.map { SerializableColorWithMeaning.fromColorWithMeaning(it) }
+            availableColors = settings.availableColors.map { SerializableColorWithMeaning.fromColorWithMeaning(it) },
+            hasSeenOnboarding = settings.hasSeenOnboarding
         )
     }
 }

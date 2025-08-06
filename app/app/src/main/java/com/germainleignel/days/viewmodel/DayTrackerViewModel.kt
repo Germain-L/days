@@ -262,6 +262,18 @@ class DayTrackerViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    fun markOnboardingAsSeen() {
+        viewModelScope.launch {
+            try {
+                val newSettings = _settings.value.copy(hasSeenOnboarding = true)
+                repository.saveSettings(newSettings)
+                _settings.value = newSettings
+            } catch (e: Exception) {
+                // Handle storage errors gracefully
+            }
+        }
+    }
+
     fun updateColorMeaning(color: Color, meaning: String) {
         viewModelScope.launch {
             try {

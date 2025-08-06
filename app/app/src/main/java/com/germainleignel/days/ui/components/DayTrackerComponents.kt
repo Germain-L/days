@@ -22,7 +22,7 @@ import com.germainleignel.days.data.ColorWithMeaning
 import com.germainleignel.days.viewmodel.DayTrackerError
 import kotlin.math.pow
 
-// Rounded button component with 8dp radius, min-height 48dp
+// Rounded button component with consistent styling and 48dp min height for accessibility
 @Composable
 fun DayTrackerButton(
     text: String,
@@ -33,10 +33,9 @@ fun DayTrackerButton(
     Button(
         onClick = onClick,
         modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp),
+            .heightIn(min = 48.dp), // Ensure minimum touch target size
         enabled = enabled,
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(12.dp), // More modern rounded corners
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary
@@ -44,7 +43,8 @@ fun DayTrackerButton(
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyLarge
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(horizontal = 8.dp) // Add internal padding
         )
     }
 }

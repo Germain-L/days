@@ -6,7 +6,8 @@ data class AppSettings(
     val selectedColor: Color = getDefaultColors().first().color, // Default to first color
     val isDarkMode: Boolean = false,
     val followSystemTheme: Boolean = true,
-    val availableColors: List<ColorWithMeaning> = getDefaultColors()
+    val availableColors: List<ColorWithMeaning> = getDefaultColors(),
+    val hasSeenOnboarding: Boolean = false
 )
 
 data class ColorWithMeaning(

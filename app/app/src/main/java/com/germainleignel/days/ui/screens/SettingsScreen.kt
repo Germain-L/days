@@ -132,7 +132,7 @@ fun SettingsScreen(
                         DayTrackerButton(
                             text = "Change Color",
                             onClick = { showColorBottomSheet = true },
-                            modifier = Modifier.width(120.dp)
+                            modifier = Modifier.widthIn(min = 120.dp)
                         )
                     }
                 }
@@ -157,7 +157,7 @@ fun SettingsScreen(
                         DayTrackerButton(
                             text = "Manage",
                             onClick = { showCalendarManagement = true },
-                            modifier = Modifier.width(100.dp)
+                            modifier = Modifier.widthIn(min = 100.dp)
                         )
                     }
 
@@ -215,7 +215,7 @@ fun SettingsScreen(
                         DayTrackerButton(
                             text = "Add Color",
                             onClick = { showAddColorDialog = true },
-                            modifier = Modifier.width(100.dp)
+                            modifier = Modifier.widthIn(min = 120.dp)
                         )
                     }
 

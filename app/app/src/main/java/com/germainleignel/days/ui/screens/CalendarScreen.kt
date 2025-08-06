@@ -8,6 +8,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
@@ -24,10 +27,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
 import com.germainleignel.days.data.ColorPalette
 import com.germainleignel.days.ui.components.ColorSwatch
 import com.germainleignel.days.ui.components.CalendarSelector
 import com.germainleignel.days.ui.components.CalendarManagementDialog
+import com.germainleignel.days.ui.components.OnboardingDialog
 import com.germainleignel.days.viewmodel.DayTrackerViewModel
 import java.time.LocalDate
 import java.time.YearMonth
@@ -50,6 +55,15 @@ fun CalendarScreen(
 
     var showColorBottomSheet by remember { mutableStateOf(false) }
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
+    
+    val settings by viewModel.settings.collectAsState()
+    var showOnboarding by remember { mutableStateOf(!settings.hasSeenOnboarding) }
+    val coroutineScope = rememberCoroutineScope()
+    
+    // Update onboarding state when settings change
+    LaunchedEffect(settings.hasSeenOnboarding) {
+        showOnboarding = !settings.hasSeenOnboarding
+    }
     val bottomSheetState = rememberModalBottomSheetState()
     var showCalendarManagement by remember { mutableStateOf(false) }
 
@@ -97,27 +111,66 @@ fun CalendarScreen(
             state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(24.dp),
-            verticalArrangement = Arrangement.spacedBy(40.dp)
+            verticalArrangement = Arrangement.spacedBy(32.dp)
         ) {
             items(60) { monthOffset -> // Show 5 years worth of months (60 months)
                 val month = currentMonth.plusMonths(monthOffset.toLong())
-                MonthSection(
-                    month = month,
-                    viewModel = viewModel,
-                    onDayClick = { date ->
-                        viewModel.toggleDayColor(date)
-                    },
-                    onDayLongClick = { date ->
-                        selectedDate = date
-                        showColorBottomSheet = true
-                    },
-                    onPreviousMonth = {
-                        displayedMonth = displayedMonth.minusMonths(1)
-                    },
-                    onNextMonth = {
-                        displayedMonth = displayedMonth.plusMonths(1)
+                
+                Column {
+                    // Month header with navigation
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = month.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        
+                        // Quick navigation to today if not current month
+                        if (month != YearMonth.now()) {
+                            TextButton(
+                                onClick = {
+                                    // Scroll to current month
+                                    val todayOffset = YearMonth.now().let { today ->
+                                        (today.year - currentMonth.year) * 12 + (today.monthValue - currentMonth.monthValue)
+                                    }
+                                    if (todayOffset in 0..59) {
+                                        // Use coroutine scope to scroll
+                                        coroutineScope.launch {
+                                            listState.animateScrollToItem(todayOffset)
+                                        }
+                                    }
+                                }
+                            ) {
+                                Text("Today")
+                            }
+                        }
                     }
-                )
+                    
+                    MonthSection(
+                        month = month,
+                        viewModel = viewModel,
+                        onDayClick = { date ->
+                            viewModel.toggleDayColor(date)
+                        },
+                        onDayLongClick = { date ->
+                            selectedDate = date
+                            showColorBottomSheet = true
+                        },
+                        onPreviousMonth = {
+                            displayedMonth = displayedMonth.minusMonths(1)
+                        },
+                        onNextMonth = {
+                            displayedMonth = displayedMonth.plusMonths(1)
+                        }
+                    )
+                }
             }
         }
     }
@@ -152,6 +205,16 @@ fun CalendarScreen(
             },
             onDeleteCalendar = { calendarId ->
                 viewModel.deleteCalendar(calendarId)
+            }
+        )
+    }
+    
+    // Show onboarding for first-time users
+    if (showOnboarding) {
+        OnboardingDialog(
+            onDismiss = {
+                viewModel.markOnboardingAsSeen()
+                showOnboarding = false
             }
         )
     }
@@ -411,42 +474,38 @@ fun ColorPickerBottomSheet(
                     )
                 }
 
-                // Color palette in grid
-                ColorPalette.chunked(3).forEach { colorRow ->
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        colorRow.forEach { color ->
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clickable { onColorSelected(color) }
-                                    .padding(12.dp)
-                            ) {
-                                ColorSwatch(
-                                    color = color,
-                                    isSelected = color == currentColor,
-                                    onClick = { onColorSelected(color) },
-                                    modifier = Modifier.size(64.dp)
-                                )
+                // Color palette in grid with better spacing
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.padding(vertical = 16.dp)
+                ) {
+                    items(ColorPalette) { color ->
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onColorSelected(color) }
+                                .padding(8.dp)
+                        ) {
+                            ColorSwatch(
+                                color = color,
+                                isSelected = color == currentColor,
+                                onClick = { onColorSelected(color) },
+                                modifier = Modifier.size(56.dp)
+                            )
 
-                                Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
 
-                                Text(
-                                    text = viewModel.getColorMeaning(color),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                                    textAlign = TextAlign.Center,
-                                    maxLines = 2
-                                )
-                            }
-                        }
-
-                        // Fill empty spaces in incomplete rows
-                        repeat(3 - colorRow.size) {
-                            Spacer(modifier = Modifier.weight(1f))
+                            Text(
+                                text = viewModel.getColorMeaning(color),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                                textAlign = TextAlign.Center,
+                                maxLines = 2,
+                                modifier = Modifier.height(32.dp)
+                            )
                         }
                     }
                 }
