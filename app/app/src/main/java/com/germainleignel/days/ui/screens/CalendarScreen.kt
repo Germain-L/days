@@ -38,7 +38,7 @@ import kotlin.math.pow
 @Composable
 fun CalendarScreen(
     onNavigateToSettings: () -> Unit,
-    viewModel: DayTrackerViewModel = viewModel()
+    viewModel: DayTrackerViewModel = viewModel(),
 ) {
     val currentMonth = remember { YearMonth.now() }
     var displayedMonth by remember { mutableStateOf(currentMonth) }
@@ -49,7 +49,7 @@ fun CalendarScreen(
     var showColorBottomSheet by remember { mutableStateOf(false) }
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
     val bottomSheetState = rememberModalBottomSheetState()
-    
+
     val isLoading: Boolean by viewModel.isLoading.collectAsState()
     val error: com.germainleignel.days.viewmodel.DayTrackerError? by viewModel.error.collectAsState()
 
@@ -85,8 +85,8 @@ fun CalendarScreen(
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            contentPadding = PaddingValues(24.dp),
+            verticalArrangement = Arrangement.spacedBy(40.dp)
         ) {
             items(60) { monthOffset -> // Show 5 years worth of months (60 months)
                 val month = currentMonth.plusMonths(monthOffset.toLong())
@@ -136,7 +136,7 @@ fun MonthSection(
     onDayClick: (LocalDate) -> Unit,
     onDayLongClick: (LocalDate) -> Unit,
     onPreviousMonth: () -> Unit,
-    onNextMonth: () -> Unit
+    onNextMonth: () -> Unit,
 ) {
     Column {
         // Month header
@@ -166,7 +166,7 @@ fun MonthSection(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Days of week header
         Row(
@@ -184,7 +184,7 @@ fun MonthSection(
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Calendar grid
         val firstDayOfMonth = month.atDay(1)
@@ -216,19 +216,23 @@ fun MonthSection(
         weeks.add(currentWeek.toList())
 
         // Render weeks
-        weeks.forEach { week ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                week.forEach { date ->
-                    DayTile(
-                        date = date,
-                        color = date?.let { viewModel.getDayColor(it) },
-                        onClick = { date?.let { onDayClick(it) } },
-                        onLongClick = { date?.let { onDayLongClick(it) } },
-                        modifier = Modifier.weight(1f)
-                    )
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            weeks.forEach { week ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    week.forEach { date ->
+                        DayTile(
+                            date = date,
+                            color = date?.let { viewModel.getDayColor(it) },
+                            onClick = { date?.let { onDayClick(it) } },
+                            onLongClick = { date?.let { onDayLongClick(it) } },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         }
@@ -241,18 +245,20 @@ fun DayTile(
     color: Color?,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            .padding(2.dp)
+            .padding(6.dp)
             .border(
                 width = 2.dp,
-                color = if (color != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                shape = RoundedCornerShape(8.dp)
+                color = if (color != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(
+                    alpha = 0.3f
+                ),
+                shape = RoundedCornerShape(12.dp)
             )
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(
                 color ?: MaterialTheme.colorScheme.surface
             )
@@ -295,7 +301,7 @@ fun ColorPickerBottomSheet(
     selectedDate: LocalDate,
     currentColor: Color?,
     onColorSelected: (Color) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     val viewModel: DayTrackerViewModel = viewModel()
 
@@ -306,26 +312,26 @@ fun ColorPickerBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp),
+                .padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = "Choose Color",
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 12.dp)
             )
 
             Text(
                 text = selectedDate.format(DateTimeFormatter.ofPattern("MMMM d, yyyy")),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                modifier = Modifier.padding(bottom = 24.dp)
+                modifier = Modifier.padding(bottom = 32.dp)
             )
 
             // Color options with meanings
             Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.padding(bottom = 24.dp)
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+                modifier = Modifier.padding(bottom = 32.dp)
             ) {
                 // Add "Remove Color" option at the top if there's currently a color
                 if (currentColor != null) {
@@ -372,7 +378,7 @@ fun ColorPickerBottomSheet(
 
                     // Divider
                     HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 8.dp),
+                        modifier = Modifier.padding(vertical = 16.dp),
                         color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                     )
                 }
@@ -389,16 +395,16 @@ fun ColorPickerBottomSheet(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clickable { onColorSelected(color) }
-                                    .padding(8.dp)
+                                    .padding(12.dp)
                             ) {
                                 ColorSwatch(
                                     color = color,
                                     isSelected = color == currentColor,
                                     onClick = { onColorSelected(color) },
-                                    modifier = Modifier.size(56.dp)
+                                    modifier = Modifier.size(64.dp)
                                 )
 
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
 
                                 Text(
                                     text = viewModel.getColorMeaning(color),
@@ -433,8 +439,11 @@ fun ColorPickerBottomSheet(
 
 // Extension function for color luminance calculation
 private fun Color.luminance(): Float {
-    val r = if (red <= 0.03928f) red / 12.92f else (red + 0.055f).toDouble().pow(2.4).toFloat() / 1.055f.toDouble().pow(2.4).toFloat()
-    val g = if (green <= 0.03928f) green / 12.92f else (green + 0.055f).toDouble().pow(2.4).toFloat() / 1.055f.toDouble().pow(2.4).toFloat()
-    val b = if (blue <= 0.03928f) blue / 12.92f else (blue + 0.055f).toDouble().pow(2.4).toFloat() / 1.055f.toDouble().pow(2.4).toFloat()
+    val r = if (red <= 0.03928f) red / 12.92f else (red + 0.055f).toDouble().pow(2.4)
+        .toFloat() / 1.055f.toDouble().pow(2.4).toFloat()
+    val g = if (green <= 0.03928f) green / 12.92f else (green + 0.055f).toDouble().pow(2.4)
+        .toFloat() / 1.055f.toDouble().pow(2.4).toFloat()
+    val b = if (blue <= 0.03928f) blue / 12.92f else (blue + 0.055f).toDouble().pow(2.4)
+        .toFloat() / 1.055f.toDouble().pow(2.4).toFloat()
     return 0.2126f * r + 0.7152f * g + 0.0722f * b
 }
