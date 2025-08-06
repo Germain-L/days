@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.germainleignel.days.data.ColorPalette
 import com.germainleignel.days.ui.components.ColorSwatch
+import com.germainleignel.days.ui.components.CalendarSelector
+import com.germainleignel.days.ui.components.CalendarManagementDialog
 import com.germainleignel.days.viewmodel.DayTrackerViewModel
 import java.time.LocalDate
 import java.time.YearMonth
@@ -49,8 +51,10 @@ fun CalendarScreen(
     var showColorBottomSheet by remember { mutableStateOf(false) }
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
     val bottomSheetState = rememberModalBottomSheetState()
+    var showCalendarManagement by remember { mutableStateOf(false) }
 
     val isLoading: Boolean by viewModel.isLoading.collectAsState()
+    val calendarData by viewModel.calendarData.collectAsState()
     val error: com.germainleignel.days.viewmodel.DayTrackerError? by viewModel.error.collectAsState()
 
     Column(
@@ -58,12 +62,19 @@ fun CalendarScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Top app bar with settings button
+        // Top app bar with calendar selector and settings button
         TopAppBar(
             title = {
-                Text(
-                    text = "Day Tracker",
-                    style = MaterialTheme.typography.titleLarge
+                CalendarSelector(
+                    calendars = calendarData.calendars,
+                    selectedCalendar = calendarData.getSelectedCalendar(),
+                    onCalendarSelected = { calendar ->
+                        viewModel.selectCalendar(calendar.id)
+                    },
+                    onCreateCalendar = {
+                        showCalendarManagement = true
+                    },
+                    modifier = Modifier.weight(1f)
                 )
             },
             actions = {
@@ -124,6 +135,23 @@ fun CalendarScreen(
             onDismiss = {
                 showColorBottomSheet = false
                 selectedDate = null
+            }
+        )
+    }
+
+    // Calendar management dialog
+    if (showCalendarManagement) {
+        CalendarManagementDialog(
+            calendars = calendarData.calendars,
+            onDismiss = { showCalendarManagement = false },
+            onCreateCalendar = { name, colors ->
+                viewModel.createCalendar(name, colors)
+            },
+            onEditCalendar = { calendar ->
+                viewModel.updateCalendar(calendar)
+            },
+            onDeleteCalendar = { calendarId ->
+                viewModel.deleteCalendar(calendarId)
             }
         )
     }

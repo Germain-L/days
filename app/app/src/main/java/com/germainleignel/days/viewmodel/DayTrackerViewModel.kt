@@ -9,6 +9,9 @@ import androidx.lifecycle.viewModelScope
 import com.germainleignel.days.data.AppSettings
 import com.germainleignel.days.data.ColorPalette
 import com.germainleignel.days.data.ColorWithMeaning
+import com.germainleignel.days.data.model.Calendar
+import com.germainleignel.days.data.model.CalendarData
+import com.germainleignel.days.data.getDefaultColors
 import com.germainleignel.days.storage.DataRepository
 import com.germainleignel.days.storage.RepositoryFactory
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,6 +35,10 @@ class DayTrackerViewModel(application: Application) : AndroidViewModel(applicati
     // App settings state
     private val _settings = MutableStateFlow(AppSettings())
     val settings = _settings.asStateFlow()
+
+    // Calendar data state
+    private val _calendarData = MutableStateFlow(CalendarData(emptyList()))
+    val calendarData = _calendarData.asStateFlow()
 
     // Map to store colored days (date -> color) - cached from repository
     private val _coloredDays = mutableStateMapOf<LocalDate, Color>()
@@ -61,18 +68,91 @@ class DayTrackerViewModel(application: Application) : AndroidViewModel(applicati
                 // Load settings
                 _settings.value = repository.getSettings()
 
-                // Load colored days
+                // Load calendar data
+                _calendarData.value = repository.getCalendarData()
+
+                // Load colored days for current calendar
                 val savedDays = repository.getAllColoredDays()
                 _coloredDays.clear()
                 _coloredDays.putAll(savedDays)
             } catch (e: Exception) {
                 // Handle loading errors gracefully
                 _settings.value = AppSettings()
+                _calendarData.value = CalendarData(emptyList())
                 _error.value = DayTrackerError.StorageError
             } finally {
                 _isLoading.value = false
             }
         }
+    }
+
+    // Calendar management methods
+    fun createCalendar(name: String, colors: List<ColorWithMeaning>) {
+        viewModelScope.launch {
+            try {
+                val newCalendar = Calendar.createDefault(name, colors)
+                repository.saveCalendar(newCalendar)
+                _calendarData.value = repository.getCalendarData()
+            } catch (e: Exception) {
+                _error.value = DayTrackerError.StorageError
+            }
+        }
+    }
+
+    fun deleteCalendar(calendarId: String) {
+        viewModelScope.launch {
+            try {
+                repository.deleteCalendar(calendarId)
+                _calendarData.value = repository.getCalendarData()
+                // Reload colored days if the deleted calendar was selected
+                if (_calendarData.value.selectedCalendarId != calendarId) {
+                    val savedDays = repository.getAllColoredDays()
+                    _coloredDays.clear()
+                    _coloredDays.putAll(savedDays)
+                }
+            } catch (e: Exception) {
+                _error.value = DayTrackerError.StorageError
+            }
+        }
+    }
+
+    fun selectCalendar(calendarId: String) {
+        viewModelScope.launch {
+            try {
+                repository.setSelectedCalendar(calendarId)
+                _calendarData.value = repository.getCalendarData()
+                
+                // Load colored days for the selected calendar
+                val savedDays = repository.getAllColoredDays()
+                _coloredDays.clear()
+                _coloredDays.putAll(savedDays)
+            } catch (e: Exception) {
+                _error.value = DayTrackerError.StorageError
+            }
+        }
+    }
+
+    fun updateCalendar(calendar: Calendar) {
+        viewModelScope.launch {
+            try {
+                repository.saveCalendar(calendar)
+                _calendarData.value = repository.getCalendarData()
+            } catch (e: Exception) {
+                _error.value = DayTrackerError.StorageError
+            }
+        }
+    }
+
+    fun getSelectedCalendar(): Calendar? {
+        return _calendarData.value.getSelectedCalendar()
+    }
+
+    fun getCalendars(): List<Calendar> {
+        return _calendarData.value.calendars
+    }
+
+    fun getCurrentCalendarColors(): List<ColorWithMeaning> {
+        return getSelectedCalendar()?.colorScheme ?: getAvailableColorsWithMeanings()
     }
 
     /**
@@ -202,7 +282,7 @@ class DayTrackerViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun getColorMeaning(color: Color): String {
-        return _settings.value.availableColors.find { it.color == color }?.meaning ?: "Custom Color"
+        return getCurrentCalendarColors().find { it.color == color }?.meaning ?: "Custom Color"
     }
 
     fun addNewColor(color: Color, meaning: String) {
@@ -261,10 +341,19 @@ class DayTrackerViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun getAvailableColors(): List<Color> {
-        return _settings.value.availableColors.map { it.color }
+        return getCurrentCalendarColors().map { it.color }
     }
 
     fun getAvailableColorsWithMeanings(): List<ColorWithMeaning> {
+        return _settings.value.availableColors
+    }
+
+    // Legacy methods for global colors (used for settings)
+    fun getGlobalColors(): List<Color> {
+        return _settings.value.availableColors.map { it.color }
+    }
+
+    fun getGlobalColorsWithMeanings(): List<ColorWithMeaning> {
         return _settings.value.availableColors
     }
 

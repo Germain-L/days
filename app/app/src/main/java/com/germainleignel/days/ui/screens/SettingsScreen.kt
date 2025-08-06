@@ -36,10 +36,12 @@ fun SettingsScreen(
     var showAddColorDialog by remember { mutableStateOf(false) }
     var showExportDialog by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
+    var showCalendarManagement by remember { mutableStateOf(false) }
     var exportedData by remember { mutableStateOf<String?>(null) }
     var importText by remember { mutableStateOf("") }
 
     val clipboardManager = LocalClipboardManager.current
+    val calendarData by viewModel.calendarData.collectAsState()
 
     val bottomSheetState = rememberModalBottomSheetState()
 
@@ -131,6 +133,64 @@ fun SettingsScreen(
                             text = "Change Color",
                             onClick = { showColorBottomSheet = true },
                             modifier = Modifier.width(120.dp)
+                        )
+                    }
+                }
+            }
+
+            // Calendar management section
+            DayTrackerCard {
+                Column(
+                    modifier = Modifier.padding(20.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Calendars",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        DayTrackerButton(
+                            text = "Manage",
+                            onClick = { showCalendarManagement = true },
+                            modifier = Modifier.width(100.dp)
+                        )
+                    }
+
+                    Text(
+                        text = "Create and manage multiple calendars with different color schemes",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
+                    )
+
+                    // Current calendar info
+                    val selectedCalendar = calendarData.getSelectedCalendar()
+                    if (selectedCalendar != null) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "Active Calendar:",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                            )
+                            Text(
+                                text = selectedCalendar.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = "No calendar selected",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error
                         )
                     }
                 }
@@ -457,6 +517,23 @@ fun SettingsScreen(
             onAddColor = { color, meaning ->
                 viewModel.addNewColor(color, meaning)
                 showAddColorDialog = false
+            }
+        )
+    }
+
+    // Calendar management dialog
+    if (showCalendarManagement) {
+        CalendarManagementDialog(
+            calendars = calendarData.calendars,
+            onDismiss = { showCalendarManagement = false },
+            onCreateCalendar = { name, colors ->
+                viewModel.createCalendar(name, colors)
+            },
+            onEditCalendar = { calendar ->
+                viewModel.updateCalendar(calendar)
+            },
+            onDeleteCalendar = { calendarId ->
+                viewModel.deleteCalendar(calendarId)
             }
         )
     }
