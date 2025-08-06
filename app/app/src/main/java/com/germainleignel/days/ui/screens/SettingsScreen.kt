@@ -9,10 +9,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.germainleignel.days.ui.components.*
@@ -30,6 +34,12 @@ fun SettingsScreen(
     var showResetDialog by remember { mutableStateOf(false) }
     var showColorBottomSheet by remember { mutableStateOf(false) }
     var showAddColorDialog by remember { mutableStateOf(false) }
+    var showExportDialog by remember { mutableStateOf(false) }
+    var showImportDialog by remember { mutableStateOf(false) }
+    var exportedData by remember { mutableStateOf<String?>(null) }
+    var importText by remember { mutableStateOf("") }
+
+    val clipboardManager = LocalClipboardManager.current
 
     val bottomSheetState = rememberModalBottomSheetState()
 
@@ -279,6 +289,42 @@ fun SettingsScreen(
                     )
 
                     Text(
+                        text = "Export your data for backup or import from a previous backup",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    // Export/Import buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        DayTrackerButton(
+                            text = "Export Data",
+                            onClick = { 
+                                viewModel.exportData { data ->
+                                    exportedData = data
+                                    showExportDialog = true
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        DayTrackerButton(
+                            text = "Import Data",
+                            onClick = { showImportDialog = true },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    DayTrackerDivider()
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
                         text = "Reset all colored days and settings to defaults",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
@@ -411,6 +457,105 @@ fun SettingsScreen(
             onAddColor = { color, meaning ->
                 viewModel.addNewColor(color, meaning)
                 showAddColorDialog = false
+            }
+        )
+    }
+
+    // Export data dialog
+    if (showExportDialog && exportedData != null) {
+        AlertDialog(
+            onDismissRequest = { 
+                showExportDialog = false 
+                exportedData = null
+            },
+            title = { Text("Export Data") },
+            text = {
+                Column {
+                    Text("Your data has been exported. Copy the text below and save it securely:")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = exportedData!!,
+                        onValueChange = { },
+                        readOnly = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp),
+                        textStyle = MaterialTheme.typography.bodySmall
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        clipboardManager.setText(AnnotatedString(exportedData!!))
+                        showExportDialog = false
+                        exportedData = null
+                    }
+                ) {
+                    Text("Copy to Clipboard")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { 
+                        showExportDialog = false 
+                        exportedData = null
+                    }
+                ) {
+                    Text("Close")
+                }
+            }
+        )
+    }
+
+    // Import data dialog
+    if (showImportDialog) {
+        AlertDialog(
+            onDismissRequest = { 
+                showImportDialog = false 
+                importText = ""
+            },
+            title = { Text("Import Data") },
+            text = {
+                Column {
+                    Text("Paste your exported data below. This will replace all current data.")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = importText,
+                        onValueChange = { importText = it },
+                        placeholder = { Text("Paste exported data here...") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp),
+                        textStyle = MaterialTheme.typography.bodySmall
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (importText.isNotBlank()) {
+                            viewModel.importData(importText) { success ->
+                                // Handle import result
+                                showImportDialog = false
+                                importText = ""
+                            }
+                        }
+                    },
+                    enabled = importText.isNotBlank()
+                ) {
+                    Text("Import")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { 
+                        showImportDialog = false 
+                        importText = ""
+                    }
+                ) {
+                    Text("Cancel")
+                }
             }
         )
     }

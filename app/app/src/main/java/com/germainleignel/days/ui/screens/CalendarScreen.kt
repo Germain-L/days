@@ -19,6 +19,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -39,6 +41,7 @@ fun CalendarScreen(
     viewModel: DayTrackerViewModel = viewModel()
 ) {
     val currentMonth = remember { YearMonth.now() }
+    var displayedMonth by remember { mutableStateOf(currentMonth) }
     val listState = rememberLazyListState(
         initialFirstVisibleItemIndex = 0 // Start at current month
     )
@@ -46,6 +49,9 @@ fun CalendarScreen(
     var showColorBottomSheet by remember { mutableStateOf(false) }
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
     val bottomSheetState = rememberModalBottomSheetState()
+    
+    val isLoading: Boolean by viewModel.isLoading.collectAsState()
+    val error: com.germainleignel.days.viewmodel.DayTrackerError? by viewModel.error.collectAsState()
 
     Column(
         modifier = Modifier
@@ -73,6 +79,8 @@ fun CalendarScreen(
             )
         )
 
+        // TODO: Add error and loading states back after fixing compilation issues
+
         // Infinite scroll calendar
         LazyColumn(
             state = listState,
@@ -91,6 +99,12 @@ fun CalendarScreen(
                     onDayLongClick = { date ->
                         selectedDate = date
                         showColorBottomSheet = true
+                    },
+                    onPreviousMonth = {
+                        displayedMonth = displayedMonth.minusMonths(1)
+                    },
+                    onNextMonth = {
+                        displayedMonth = displayedMonth.plusMonths(1)
                     }
                 )
             }
@@ -120,7 +134,9 @@ fun MonthSection(
     month: YearMonth,
     viewModel: DayTrackerViewModel,
     onDayClick: (LocalDate) -> Unit,
-    onDayLongClick: (LocalDate) -> Unit
+    onDayLongClick: (LocalDate) -> Unit,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit
 ) {
     Column {
         // Month header
@@ -129,7 +145,7 @@ fun MonthSection(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { /* Quick month navigation */ }) {
+            IconButton(onClick = onPreviousMonth) {
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowLeft,
                     contentDescription = "Previous month"
@@ -142,7 +158,7 @@ fun MonthSection(
                 color = MaterialTheme.colorScheme.onBackground
             )
 
-            IconButton(onClick = { /* Quick month navigation */ }) {
+            IconButton(onClick = onNextMonth) {
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowRight,
                     contentDescription = "Next month"
@@ -243,9 +259,17 @@ fun DayTile(
             .clickable(enabled = date != null) { onClick() }
             .then(
                 if (date != null) {
-                    Modifier.clickable(
-                        onClickLabel = "Long press for color picker"
-                    ) { onLongClick() }
+                    Modifier
+                        .clickable(
+                            onClickLabel = "Long press for color picker"
+                        ) { onLongClick() }
+                        .semantics {
+                            contentDescription = if (color != null) {
+                                "Day ${date.dayOfMonth}, colored"
+                            } else {
+                                "Day ${date.dayOfMonth}, not colored"
+                            }
+                        }
                 } else Modifier
             ),
         contentAlignment = Alignment.Center

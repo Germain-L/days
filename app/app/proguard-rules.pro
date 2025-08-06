@@ -19,3 +19,49 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Keep data classes for JSON serialization
+-keep class com.germainleignel.days.data.** { *; }
+-keep class com.germainleignel.days.storage.Serializable** { *; }
+
+# Keep Jetpack Compose related classes
+-keep class androidx.compose.** { *; }
+-dontwarn androidx.compose.**
+
+# Keep Kotlin serialization classes
+-keepattributes *Annotation*, InnerClasses
+-dontnote kotlinx.serialization.AnnotationsKt
+-keepclassmembers class kotlinx.serialization.json.** {
+    *** Companion;
+}
+-keepclasseswithmembers class kotlinx.serialization.json.** {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+
+# Keep ViewModel classes
+-keep class com.germainleignel.days.viewmodel.** { *; }
+
+# Keep enum classes
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
+# Keep Parcelable implementations
+-keep class * implements android.os.Parcelable {
+    public static final ** CREATOR;
+}
+
+# Keep Navigation component classes
+-keep class androidx.navigation.** { *; }
+-dontwarn androidx.navigation.**
+
+# Keep Material Design components
+-keep class com.google.android.material.** { *; }
+-dontwarn com.google.android.material.**
+
+# Coroutines
+-keepclassmembernames class kotlinx.** {
+    volatile <fields>;
+}
+-keepclassmembers class kotlinx.coroutines.** { *; }

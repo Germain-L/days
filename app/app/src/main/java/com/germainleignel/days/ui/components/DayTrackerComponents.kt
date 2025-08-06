@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.germainleignel.days.data.ColorWithMeaning
+import com.germainleignel.days.viewmodel.DayTrackerError
 import kotlin.math.pow
 
 // Rounded button component with 8dp radius, min-height 48dp
@@ -344,12 +346,108 @@ fun AddColorDialog(
                                     isSelected = color == selectedColor,
                                     onClick = { selectedColor = color },
                                     modifier = Modifier.size(40.dp)
-                                )
-                            }
-                        }
-                    }
-                }
+                )
+            }
+        }
+    }
+}
 
+// Error state component for displaying errors to users
+@Composable
+fun ErrorState(
+    error: DayTrackerError,
+    onRetry: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        ),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = "Error",
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(24.dp)
+            )
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = when (error) {
+                        is DayTrackerError.StorageError -> "Storage Error"
+                        is DayTrackerError.NetworkError -> "Network Error"
+                        is DayTrackerError.ValidationError -> "Validation Error"
+                        is DayTrackerError.UnknownError -> "Unknown Error"
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+
+                Text(
+                    text = when (error) {
+                        is DayTrackerError.StorageError -> "Failed to save or load data. Please try again."
+                        is DayTrackerError.NetworkError -> "Network connection failed. Check your internet connection."
+                        is DayTrackerError.ValidationError -> error.message
+                        is DayTrackerError.UnknownError -> "An unexpected error occurred. Please try again."
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TextButton(onClick = onRetry) {
+                    Text("Retry")
+                }
+                TextButton(onClick = onDismiss) {
+                    Text("Dismiss")
+                }
+            }
+        }
+    }
+}
+
+// Loading state component
+@Composable
+fun LoadingState(
+    message: String = "Loading...",
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(24.dp),
+                strokeWidth = 2.dp
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
+        }
+    }
+}
                 // Meaning input
                 Text(
                     text = "Meaning:",

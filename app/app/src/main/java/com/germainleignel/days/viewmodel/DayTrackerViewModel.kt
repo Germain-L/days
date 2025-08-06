@@ -16,6 +16,16 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
+/**
+ * Sealed class for different types of errors
+ */
+sealed class DayTrackerError {
+    object StorageError : DayTrackerError()
+    object NetworkError : DayTrackerError()
+    data class ValidationError(val message: String) : DayTrackerError()
+    object UnknownError : DayTrackerError()
+}
+
 class DayTrackerViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: DataRepository = RepositoryFactory.getRepository(application)
 
@@ -35,6 +45,10 @@ class DayTrackerViewModel(application: Application) : AndroidViewModel(applicati
     private val _isLoading = MutableStateFlow(false)
     val isLoading = _isLoading.asStateFlow()
 
+    // Error states
+    private val _error = MutableStateFlow<DayTrackerError?>(null)
+    val error = _error.asStateFlow()
+
     init {
         loadData()
     }
@@ -42,6 +56,7 @@ class DayTrackerViewModel(application: Application) : AndroidViewModel(applicati
     private fun loadData() {
         viewModelScope.launch {
             _isLoading.value = true
+            _error.value = null
             try {
                 // Load settings
                 _settings.value = repository.getSettings()
@@ -53,10 +68,25 @@ class DayTrackerViewModel(application: Application) : AndroidViewModel(applicati
             } catch (e: Exception) {
                 // Handle loading errors gracefully
                 _settings.value = AppSettings()
+                _error.value = DayTrackerError.StorageError
             } finally {
                 _isLoading.value = false
             }
         }
+    }
+
+    /**
+     * Clear the current error state
+     */
+    fun clearError() {
+        _error.value = null
+    }
+
+    /**
+     * Retry loading data after an error
+     */
+    fun retryLoadData() {
+        loadData()
     }
 
     fun toggleDayColor(date: LocalDate) {
@@ -75,6 +105,7 @@ class DayTrackerViewModel(application: Application) : AndroidViewModel(applicati
     fun setDayColor(date: LocalDate, color: Color) {
         viewModelScope.launch {
             try {
+                _error.value = null
                 if (color == Color.Transparent) {
                     // Transparent color means remove the color
                     repository.removeDayColor(date)
@@ -85,7 +116,7 @@ class DayTrackerViewModel(application: Application) : AndroidViewModel(applicati
                 }
             } catch (e: Exception) {
                 // Handle storage errors gracefully
-                // Could show error message to user
+                _error.value = DayTrackerError.StorageError
             }
         }
     }
