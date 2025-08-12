@@ -1,0 +1,125 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  GREETING: Hello, World!
+
+tasks:
+  default:
+    cmds:
+      - echo "{{.GREETING}}"
+    silent: true
+
+  # Backend tasks
+  backend:build:
+    desc: Build the backend server
+    dir: backend
+    cmds:
+      - go build -o days-server.exe cmd/server/main.go
+    sources:
+      - "**/*.go"
+      - go.mod
+      - go.sum
+    generates:
+      - days-server.exe
+
+  backend:test:
+    desc: Run backend tests with coverage
+    dir: backend
+    env:
+      GO_ENV: test
+      JWT_SECRET: test-secret-for-all-tests
+    cmds:
+      - go mod tidy
+      - go vet ./...
+      - go build ./...
+      - go test -v -coverprofile=coverage.out ./...
+      - go tool cover -html=coverage.out -o coverage.html
+      - go tool cover -func=coverage.out
+
+  backend:test:unit:
+    desc: Run only unit tests (fast)
+    dir: backend
+    env:
+      GO_ENV: test
+      JWT_SECRET: test-secret-for-all-tests
+    cmds:
+      - go test -short ./...
+
+  backend:test:race:
+    desc: Run tests with race detection (requires CGO)
+    dir: backend
+    env:
+      GO_ENV: test
+      JWT_SECRET: test-secret-for-all-tests
+      CGO_ENABLED: 1
+    cmds:
+      - go mod tidy
+      - go vet ./...
+      - go build ./...
+      - go test -v -race -coverprofile=coverage.out ./...
+      - go tool cover -html=coverage.out -o coverage.html
+      - go tool cover -func=coverage.out
+
+  backend:test:integration:
+    desc: Run integration tests
+    dir: backend
+    env:
+      GO_ENV: test
+      JWT_SECRET: test-secret-for-all-tests
+    cmds:
+      - go test -v ./... -tags=integration
+
+  backend:swagger:
+    desc: Generate Swagger documentation
+    dir: backend
+    cmds:
+      - swag init -g cmd/server/main.go
+      - echo "✅ Swagger documentation generated!"
+      - echo "📁 Generated files:"
+      - echo "   - docs/docs.go"
+      - echo "   - docs/swagger.json"
+      - echo "   - docs/swagger.yaml"
+      - echo "🚀 Start the server and visit http://localhost:8080/swagger/ to view docs"
+    sources:
+      - "**/*.go"
+    generates:
+      - docs/docs.go
+      - docs/swagger.json
+      - docs/swagger.yaml
+
+  backend:run:
+    desc: Run the backend server
+    dir: backend
+    cmds:
+      - go run cmd/server/main.go
+
+  backend:dev:
+    desc: Run backend in development mode with auto-reload
+    dir: backend
+    cmds:
+      - task: backend:swagger
+      - task: backend:run
+
+  backend:clean:
+    desc: Clean backend build artifacts
+    dir: backend
+    cmds:
+      - rm -f days-server.exe main.exe
+      - rm -f coverage.out coverage.html
+      - rm -rf docs/
+
+  backend:deps:
+    desc: Install/update backend dependencies
+    dir: backend
+    cmds:
+      - go mod tidy
+      - go mod download
+
+  backend:lint:
+    desc: Run linting checks
+    dir: backend
+    cmds:
+      - go vet ./...
+      - go fmt ./...

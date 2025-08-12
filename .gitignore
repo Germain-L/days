@@ -1,0 +1,7 @@
+.env
+
+*.exe
+coverage.out
+coverage.html
+
+.task/
