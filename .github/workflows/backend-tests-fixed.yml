@@ -1,16 +1,16 @@
-name: Backend Go Tests
+name: Backend Tests (Fixed)
 
 on:
   push:
     branches: [ main, develop ]
     paths:
       - 'backend/**'
-      - '.github/workflows/backend-tests.yml'
+      - '.github/workflows/backend-tests-fixed.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
       - 'backend/**'
-      - '.github/workflows/backend-tests.yml'
+      - '.github/workflows/backend-tests-fixed.yml'
 
 jobs:
   test:
@@ -96,17 +96,6 @@ jobs:
       working-directory: ./backend
       run: go tool cover -html=coverage.out -o coverage.html
 
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v4
-      if: env.CODECOV_TOKEN != ''
-      with:
-        file: ./backend/coverage.out
-        flags: backend
-        name: backend-coverage
-        fail_ci_if_error: false
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
     - name: Upload coverage artifact
       uses: actions/upload-artifact@v4
       with:
@@ -134,7 +123,7 @@ jobs:
       with:
         version: latest
         working-directory: ./backend
-        args: --timeout=5m
+        args: --timeout=5m --config=.golangci.yml
 
   security:
     name: Security Scan
@@ -156,9 +145,10 @@ jobs:
 
     - name: Run Gosec Security Scanner
       working-directory: ./backend
-      run: gosec -fmt sarif -out gosec-results.sarif ./...
+      run: gosec -fmt json -out gosec-results.json ./...
 
-    - name: Upload SARIF file
-      uses: github/codeql-action/upload-sarif@v3
+    - name: Upload security scan results
+      uses: actions/upload-artifact@v4
       with:
-        sarif_file: backend/gosec-results.sarif
+        name: security-scan-results
+        path: backend/gosec-results.json
