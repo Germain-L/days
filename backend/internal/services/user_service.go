@@ -9,8 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"net/mail"
+	"os"
 	"strings"
+	"time"
 
+	"days/internal/auth"
 	"days/internal/db"
 
 	"github.com/google/uuid"
@@ -26,7 +29,7 @@ var (
 )
 
 type UserService struct {
-	queries *db.Queries
+	queries UserRepository
 }
 
 type CreateUserRequest struct {
@@ -50,7 +53,7 @@ type LoginResponse struct {
 	Token string       `json:"token"`
 }
 
-func NewUserService(queries *db.Queries) *UserService {
+func NewUserService(queries UserRepository) *UserService {
 	return &UserService{
 		queries: queries,
 	}
@@ -137,8 +140,15 @@ func (s *UserService) Login(ctx context.Context, req LoginRequest) (*LoginRespon
 		return nil, ErrInvalidCredentials
 	}
 
-	// Generate token (placeholder - you'll implement JWT later)
-	token := s.generateSessionToken()
+	// Generate JWT token
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return nil, fmt.Errorf("server misconfigured: missing JWT secret")
+	}
+	token, err := auth.GenerateToken(user.ID, secret, 24*time.Hour)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate token: %w", err)
+	}
 
 	return &LoginResponse{
 		User:  *s.toUserResponse(user),

@@ -10,10 +10,10 @@ import (
 )
 
 type UserHandler struct {
-	userService *services.UserService
+	userService services.UserServiceInterface
 }
 
-func NewUserHandler(userService *services.UserService) *UserHandler {
+func NewUserHandler(userService services.UserServiceInterface) *UserHandler {
 	return &UserHandler{
 		userService: userService,
 	}
@@ -22,13 +22,13 @@ func NewUserHandler(userService *services.UserService) *UserHandler {
 // CreateUser handles POST /api/users
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
 
 	var req services.CreateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, "invalid JSON")
 		return
 	}
 
@@ -36,13 +36,13 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case services.ErrInvalidEmail:
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeJSONError(w, http.StatusBadRequest, err.Error())
 		case services.ErrWeakPassword:
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeJSONError(w, http.StatusBadRequest, err.Error())
 		case services.ErrEmailExists:
-			http.Error(w, err.Error(), http.StatusConflict)
+			writeJSONError(w, http.StatusConflict, err.Error())
 		default:
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			writeJSONError(w, http.StatusInternalServerError, "internal server error")
 		}
 		return
 	}
@@ -55,13 +55,13 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 // Login handles POST /api/auth/login
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
 
 	var req services.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, "invalid JSON")
 		return
 	}
 
@@ -69,9 +69,9 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case services.ErrInvalidCredentials:
-			http.Error(w, err.Error(), http.StatusUnauthorized)
+			writeJSONError(w, http.StatusUnauthorized, err.Error())
 		default:
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			writeJSONError(w, http.StatusInternalServerError, "internal server error")
 		}
 		return
 	}
@@ -83,7 +83,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 // GetUser handles GET /api/users/{id}
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
 
@@ -91,7 +91,14 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	userIDStr := r.URL.Path[len("/api/users/"):]
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, "invalid user ID")
+		return
+	}
+
+	// Enforce self-only access for now
+	authUserID, ok := r.Context().Value(ctxUserIDKey).(uuid.UUID)
+	if !ok || authUserID != userID {
+		writeJSONError(w, http.StatusForbidden, "forbidden: can only access own user record")
 		return
 	}
 
@@ -99,9 +106,9 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case services.ErrUserNotFound:
-			http.Error(w, err.Error(), http.StatusNotFound)
+			writeJSONError(w, http.StatusNotFound, err.Error())
 		default:
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			writeJSONError(w, http.StatusInternalServerError, "internal server error")
 		}
 		return
 	}

@@ -2,86 +2,100 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
+	"os"
 	"strings"
+	"time"
+
+	"days/internal/auth"
 
 	"github.com/google/uuid"
 )
 
-// AuthMiddleware is a simple middleware for demonstration
-// In production, you'd implement proper JWT token validation
+// typed context key to avoid collisions
+type ctxKey string
+
+const ctxUserIDKey ctxKey = "userID"
+
+type errorResponse struct {
+	Error string `json:"error"`
+}
+
+func writeJSONError(w http.ResponseWriter, status int, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(errorResponse{Error: msg})
+}
+
+// AuthMiddleware validates JWT Bearer tokens and injects user ID into context
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Get Authorization header
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
-			http.Error(w, "Authorization header required", http.StatusUnauthorized)
+			writeJSONError(w, http.StatusUnauthorized, "authorization header required")
 			return
 		}
-
-		// Check Bearer token format
 		if !strings.HasPrefix(authHeader, "Bearer ") {
-			http.Error(w, "Invalid authorization format", http.StatusUnauthorized)
+			writeJSONError(w, http.StatusUnauthorized, "invalid authorization format")
 			return
 		}
-
-		token := strings.TrimPrefix(authHeader, "Bearer ")
+		token := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
 		if token == "" {
-			http.Error(w, "Token required", http.StatusUnauthorized)
+			writeJSONError(w, http.StatusUnauthorized, "token required")
 			return
 		}
 
-		// For demonstration purposes, we'll use a simple token-to-userID mapping
-		// In production, you'd validate JWT and extract user ID from claims
-		userID := parseTokenToUserID(token)
-		if userID == uuid.Nil {
-			http.Error(w, "Invalid token", http.StatusUnauthorized)
+		secret := os.Getenv("JWT_SECRET")
+		if secret == "" {
+			writeJSONError(w, http.StatusInternalServerError, "server misconfigured: missing JWT secret")
 			return
 		}
 
-		// Add user ID to context
-		ctx := context.WithValue(r.Context(), "userID", userID)
+		userID, err := auth.ParseToken(token, secret)
+		if err != nil || userID == uuid.Nil {
+			writeJSONError(w, http.StatusUnauthorized, "invalid or expired token")
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), ctxUserIDKey, userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }
 
-// parseTokenToUserID is a placeholder for proper JWT validation
-// In production, you'd decode the JWT and extract the user ID from claims
-func parseTokenToUserID(token string) uuid.UUID {
-	// For demonstration, we'll use a simple mapping
-	// In production, this would be proper JWT validation
-	switch token {
-	case "test-token-user1":
-		// Return a test user ID
-		if id, err := uuid.Parse("550e8400-e29b-41d4-a716-446655440000"); err == nil {
-			return id
-		}
-	case "test-token-user2":
-		if id, err := uuid.Parse("550e8400-e29b-41d4-a716-446655440001"); err == nil {
-			return id
-		}
+// MaxBodyBytes limits the size of request bodies to prevent DoS via large payloads
+func MaxBodyBytes(n int64, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, n)
+		next.ServeHTTP(w, r)
 	}
-
-	// Try to parse the token as a UUID directly (for testing)
-	if id, err := uuid.Parse(token); err == nil {
-		return id
-	}
-
-	return uuid.Nil
 }
 
-// CORS middleware for development
+// CORS middleware for development (restrict in production via env)
 func CORSMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		allowOrigin := os.Getenv("CORS_ALLOW_ORIGIN")
+		if allowOrigin == "" {
+			allowOrigin = "*"
+		}
+		w.Header().Set("Access-Control-Allow-Origin", allowOrigin)
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
-		if r.Method == "OPTIONS" {
+		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
 
 		next.ServeHTTP(w, r)
+	}
+}
+
+// A small timeout wrapper to help ensure handlers don't hang indefinitely
+func WithTimeout(d time.Duration, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), d)
+		defer cancel()
+		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }

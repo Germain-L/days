@@ -14,7 +14,7 @@ type Server struct {
 }
 
 func NewServer(
-	userService *services.UserService,
+	userService services.UserServiceInterface,
 	calendarService *services.CalendarService,
 ) *Server {
 	return &Server{
@@ -32,14 +32,14 @@ func (s *Server) SetupRoutes() *http.ServeMux {
 		fmt.Fprint(w, "OK")
 	})
 
-	// Auth routes (no auth required)
-	mux.HandleFunc("/api/users", CORSMiddleware(s.userHandler.CreateUser))
-	mux.HandleFunc("/api/auth/login", CORSMiddleware(s.userHandler.Login))
+	// Auth routes (no auth required) with body size limits (1MB)
+	mux.HandleFunc("/api/users", CORSMiddleware(MaxBodyBytes(1<<20, s.userHandler.CreateUser)))
+	mux.HandleFunc("/api/auth/login", CORSMiddleware(MaxBodyBytes(1<<20, s.userHandler.Login)))
 
 	// Protected routes
 	mux.HandleFunc("/api/users/", CORSMiddleware(AuthMiddleware(s.userHandler.GetUser)))
-	mux.HandleFunc("/api/calendars", CORSMiddleware(AuthMiddleware(s.handleCalendars)))
-	mux.HandleFunc("/api/calendars/", CORSMiddleware(AuthMiddleware(s.handleCalendarByID)))
+	mux.HandleFunc("/api/calendars", CORSMiddleware(AuthMiddleware(MaxBodyBytes(1<<20, s.handleCalendars))))
+	mux.HandleFunc("/api/calendars/", CORSMiddleware(AuthMiddleware(MaxBodyBytes(1<<20, s.handleCalendarByID))))
 
 	return mux
 }

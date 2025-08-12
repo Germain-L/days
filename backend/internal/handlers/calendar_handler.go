@@ -23,20 +23,20 @@ func NewCalendarHandler(calendarService *services.CalendarService) *CalendarHand
 // CreateCalendar handles POST /api/calendars
 func (h *CalendarHandler) CreateCalendar(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
 
 	// Extract user ID from context (set by auth middleware)
-	userID, ok := r.Context().Value("userID").(uuid.UUID)
+	userID, ok := r.Context().Value(ctxUserIDKey).(uuid.UUID)
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		writeJSONError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	var req services.CreateCalendarRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, "invalid JSON")
 		return
 	}
 
@@ -44,11 +44,11 @@ func (h *CalendarHandler) CreateCalendar(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		switch err {
 		case services.ErrCalendarNameEmpty:
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeJSONError(w, http.StatusBadRequest, err.Error())
 		case services.ErrCalendarNameExists:
-			http.Error(w, err.Error(), http.StatusConflict)
+			writeJSONError(w, http.StatusConflict, err.Error())
 		default:
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			writeJSONError(w, http.StatusInternalServerError, "internal server error")
 		}
 		return
 	}
@@ -61,20 +61,20 @@ func (h *CalendarHandler) CreateCalendar(w http.ResponseWriter, r *http.Request)
 // GetCalendars handles GET /api/calendars
 func (h *CalendarHandler) GetCalendars(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
 
 	// Extract user ID from context (set by auth middleware)
-	userID, ok := r.Context().Value("userID").(uuid.UUID)
+	userID, ok := r.Context().Value(ctxUserIDKey).(uuid.UUID)
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		writeJSONError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	calendars, err := h.calendarService.GetCalendarsByUserID(r.Context(), userID)
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		writeJSONError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -85,14 +85,14 @@ func (h *CalendarHandler) GetCalendars(w http.ResponseWriter, r *http.Request) {
 // GetCalendar handles GET /api/calendars/{id}
 func (h *CalendarHandler) GetCalendar(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
 
 	// Extract user ID from context (set by auth middleware)
-	userID, ok := r.Context().Value("userID").(uuid.UUID)
+	userID, ok := r.Context().Value(ctxUserIDKey).(uuid.UUID)
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		writeJSONError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
@@ -100,7 +100,7 @@ func (h *CalendarHandler) GetCalendar(w http.ResponseWriter, r *http.Request) {
 	calendarIDStr := extractIDFromPath(r.URL.Path, "/api/calendars/")
 	calendarID, err := uuid.Parse(calendarIDStr)
 	if err != nil {
-		http.Error(w, "Invalid calendar ID", http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, "invalid calendar ID")
 		return
 	}
 
@@ -108,11 +108,11 @@ func (h *CalendarHandler) GetCalendar(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case services.ErrCalendarNotFound:
-			http.Error(w, err.Error(), http.StatusNotFound)
+			writeJSONError(w, http.StatusNotFound, err.Error())
 		case services.ErrUnauthorizedCalendar:
-			http.Error(w, err.Error(), http.StatusForbidden)
+			writeJSONError(w, http.StatusForbidden, err.Error())
 		default:
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			writeJSONError(w, http.StatusInternalServerError, "internal server error")
 		}
 		return
 	}
@@ -124,14 +124,14 @@ func (h *CalendarHandler) GetCalendar(w http.ResponseWriter, r *http.Request) {
 // UpdateCalendar handles PUT /api/calendars/{id}
 func (h *CalendarHandler) UpdateCalendar(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
 
 	// Extract user ID from context (set by auth middleware)
-	userID, ok := r.Context().Value("userID").(uuid.UUID)
+	userID, ok := r.Context().Value(ctxUserIDKey).(uuid.UUID)
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		writeJSONError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
@@ -139,13 +139,13 @@ func (h *CalendarHandler) UpdateCalendar(w http.ResponseWriter, r *http.Request)
 	calendarIDStr := extractIDFromPath(r.URL.Path, "/api/calendars/")
 	calendarID, err := uuid.Parse(calendarIDStr)
 	if err != nil {
-		http.Error(w, "Invalid calendar ID", http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, "invalid calendar ID")
 		return
 	}
 
 	var req services.UpdateCalendarRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, "invalid JSON")
 		return
 	}
 
@@ -153,15 +153,15 @@ func (h *CalendarHandler) UpdateCalendar(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		switch err {
 		case services.ErrCalendarNotFound:
-			http.Error(w, err.Error(), http.StatusNotFound)
+			writeJSONError(w, http.StatusNotFound, err.Error())
 		case services.ErrUnauthorizedCalendar:
-			http.Error(w, err.Error(), http.StatusForbidden)
+			writeJSONError(w, http.StatusForbidden, err.Error())
 		case services.ErrCalendarNameEmpty:
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeJSONError(w, http.StatusBadRequest, err.Error())
 		case services.ErrCalendarNameExists:
-			http.Error(w, err.Error(), http.StatusConflict)
+			writeJSONError(w, http.StatusConflict, err.Error())
 		default:
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			writeJSONError(w, http.StatusInternalServerError, "internal server error")
 		}
 		return
 	}
@@ -173,14 +173,14 @@ func (h *CalendarHandler) UpdateCalendar(w http.ResponseWriter, r *http.Request)
 // DeleteCalendar handles DELETE /api/calendars/{id}
 func (h *CalendarHandler) DeleteCalendar(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
 
 	// Extract user ID from context (set by auth middleware)
-	userID, ok := r.Context().Value("userID").(uuid.UUID)
+	userID, ok := r.Context().Value(ctxUserIDKey).(uuid.UUID)
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		writeJSONError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
@@ -188,7 +188,7 @@ func (h *CalendarHandler) DeleteCalendar(w http.ResponseWriter, r *http.Request)
 	calendarIDStr := extractIDFromPath(r.URL.Path, "/api/calendars/")
 	calendarID, err := uuid.Parse(calendarIDStr)
 	if err != nil {
-		http.Error(w, "Invalid calendar ID", http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, "invalid calendar ID")
 		return
 	}
 
@@ -196,11 +196,11 @@ func (h *CalendarHandler) DeleteCalendar(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		switch err {
 		case services.ErrCalendarNotFound:
-			http.Error(w, err.Error(), http.StatusNotFound)
+			writeJSONError(w, http.StatusNotFound, err.Error())
 		case services.ErrUnauthorizedCalendar:
-			http.Error(w, err.Error(), http.StatusForbidden)
+			writeJSONError(w, http.StatusForbidden, err.Error())
 		default:
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			writeJSONError(w, http.StatusInternalServerError, "internal server error")
 		}
 		return
 	}
