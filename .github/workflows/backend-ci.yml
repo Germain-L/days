@@ -1,0 +1,76 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ main ]
+    paths: 
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [ main ]
+    paths: 
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+        
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('backend/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    
+    - name: Install dependencies
+      working-directory: ./backend
+      run: go mod download
+    
+    - name: Run vet
+      working-directory: ./backend
+      run: go vet ./...
+    
+    - name: Run tests
+      working-directory: ./backend
+      env:
+        GO_ENV: test
+        JWT_SECRET: test-secret-for-github-actions
+      run: |
+        go test -v -coverprofile=coverage.out ./...
+        go tool cover -func=coverage.out
+    
+    - name: Build
+      working-directory: ./backend
+      run: go build -v ./...
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+        
+    - name: Build server binary
+      working-directory: ./backend
+      run: go build -o days-server cmd/server/main.go
+    
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: backend-binary
+        path: backend/days-server
