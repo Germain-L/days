@@ -33,24 +33,24 @@ type UserService struct {
 }
 
 type CreateUserRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email" example:"user@example.com" binding:"required"`
+	Password string `json:"password" example:"password123" binding:"required,min=8"`
 }
 
 type UserResponse struct {
-	ID        uuid.UUID `json:"id"`
-	Email     string    `json:"email"`
-	CreatedAt string    `json:"created_at"`
+	ID        uuid.UUID `json:"id" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Email     string    `json:"email" example:"user@example.com"`
+	CreatedAt string    `json:"created_at" example:"2023-01-01T00:00:00Z"`
 }
 
 type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email" example:"user@example.com" binding:"required"`
+	Password string `json:"password" example:"password123" binding:"required"`
 }
 
 type LoginResponse struct {
 	User  UserResponse `json:"user"`
-	Token string       `json:"token"`
+	Token string       `json:"token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
 }
 
 func NewUserService(queries UserRepository) *UserService {

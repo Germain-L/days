@@ -24,22 +24,22 @@ type CalendarService struct {
 }
 
 type CreateCalendarRequest struct {
-	Name        string  `json:"name"`
-	Description *string `json:"description,omitempty"`
+	Name        string  `json:"name" example:"My Personal Calendar" binding:"required"`
+	Description *string `json:"description,omitempty" example:"Calendar for personal events"`
 }
 
 type UpdateCalendarRequest struct {
-	Name        string  `json:"name"`
-	Description *string `json:"description,omitempty"`
+	Name        string  `json:"name" example:"Updated Calendar Name" binding:"required"`
+	Description *string `json:"description,omitempty" example:"Updated description"`
 }
 
 type CalendarResponse struct {
-	ID          uuid.UUID `json:"id"`
-	UserID      uuid.UUID `json:"user_id"`
-	Name        string    `json:"name"`
-	Description *string   `json:"description,omitempty"`
-	CreatedAt   string    `json:"created_at"`
-	UpdatedAt   string    `json:"updated_at"`
+	ID          uuid.UUID `json:"id" example:"123e4567-e89b-12d3-a456-426614174000"`
+	UserID      uuid.UUID `json:"user_id" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Name        string    `json:"name" example:"My Personal Calendar"`
+	Description *string   `json:"description,omitempty" example:"Calendar for personal events"`
+	CreatedAt   string    `json:"created_at" example:"2023-01-01T00:00:00Z"`
+	UpdatedAt   string    `json:"updated_at" example:"2023-01-01T00:00:00Z"`
 }
 
 func NewCalendarService(queries *db.Queries) *CalendarService {

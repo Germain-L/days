@@ -27,6 +27,14 @@ func (s *Server) SetupRoutes() *http.ServeMux {
 	mux := http.NewServeMux()
 
 	// Health check
+	//
+	//	@Summary		Health check
+	//	@Description	Check if the API is running
+	//	@Tags			health
+	//	@Accept			json
+	//	@Produce		json
+	//	@Success		200	{string}	string	"OK"
+	//	@Router			/health [get]
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, "OK")

@@ -9,6 +9,11 @@ import (
 	"github.com/google/uuid"
 )
 
+// ErrorResponse represents an error response
+type ErrorResponse struct {
+	Error string `json:"error" example:"error message"`
+}
+
 type UserHandler struct {
 	userService services.UserServiceInterface
 }
@@ -20,6 +25,18 @@ func NewUserHandler(userService services.UserServiceInterface) *UserHandler {
 }
 
 // CreateUser handles POST /api/users
+//
+//	@Summary		Create a new user
+//	@Description	Create a new user account with email and password
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Param			user	body		services.CreateUserRequest	true	"User creation request"
+//	@Success		201		{object}	services.UserResponse
+//	@Failure		400		{object}	ErrorResponse
+//	@Failure		409		{object}	ErrorResponse
+//	@Failure		500		{object}	ErrorResponse
+//	@Router			/api/users [post]
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
@@ -53,6 +70,18 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // Login handles POST /api/auth/login
+//
+//	@Summary		User login
+//	@Description	Authenticate user and return JWT token
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			credentials	body		services.LoginRequest	true	"Login credentials"
+//	@Success		200			{object}	services.LoginResponse
+//	@Failure		400			{object}	ErrorResponse
+//	@Failure		401			{object}	ErrorResponse
+//	@Failure		500			{object}	ErrorResponse
+//	@Router			/api/auth/login [post]
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
@@ -81,6 +110,21 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetUser handles GET /api/users/{id}
+//
+//	@Summary		Get user by ID
+//	@Description	Retrieve user information by user ID (self only)
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"User ID"
+//	@Success		200	{object}	services.UserResponse
+//	@Failure		400	{object}	ErrorResponse
+//	@Failure		401	{object}	ErrorResponse
+//	@Failure		403	{object}	ErrorResponse
+//	@Failure		404	{object}	ErrorResponse
+//	@Failure		500	{object}	ErrorResponse
+//	@Security		BearerAuth
+//	@Router			/api/users/{id} [get]
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")

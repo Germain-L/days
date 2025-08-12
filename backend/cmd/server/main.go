@@ -1,3 +1,15 @@
+// Days Calendar API
+//
+//	@title			Days Calendar API
+//	@version		1.0
+//	@description	API for managing personal calendars and daily entries
+//	@contact.name	API Support
+//	@host			localhost:8080
+//	@BasePath		/
+//	@securityDefinitions.apikey	BearerAuth
+//	@in							header
+//	@name						Authorization
+//	@description				Type "Bearer" followed by a space and JWT token.
 package main
 
 import (
@@ -6,11 +18,13 @@ import (
 	"net/http"
 	"os"
 
+	_ "days/docs"
 	"days/internal/database"
 	"days/internal/handlers"
 	"days/internal/services"
 
 	"github.com/joho/godotenv"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 func main() {
@@ -48,6 +62,9 @@ func main() {
 	// Setup routes
 	mux := server.SetupRoutes()
 
+	// Add Swagger UI
+	mux.Handle("/swagger/", httpSwagger.WrapHandler)
+
 	// Get port from environment
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -57,6 +74,7 @@ func main() {
 	// Start HTTP server
 	addr := fmt.Sprintf(":%s", port)
 	log.Printf("Server starting on http://localhost%s", addr)
+	log.Printf("Swagger documentation available at: http://localhost%s/swagger/", addr)
 	log.Printf("API endpoints:")
 	log.Printf("  POST   /api/users          - Create user")
 	log.Printf("  POST   /api/auth/login     - Login")

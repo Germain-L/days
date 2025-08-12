@@ -21,6 +21,20 @@ func NewCalendarHandler(calendarService *services.CalendarService) *CalendarHand
 }
 
 // CreateCalendar handles POST /api/calendars
+//
+//	@Summary		Create a new calendar
+//	@Description	Create a new calendar for the authenticated user
+//	@Tags			calendars
+//	@Accept			json
+//	@Produce		json
+//	@Param			calendar	body		services.CreateCalendarRequest	true	"Calendar creation request"
+//	@Success		201			{object}	services.CalendarResponse
+//	@Failure		400			{object}	ErrorResponse
+//	@Failure		401			{object}	ErrorResponse
+//	@Failure		409			{object}	ErrorResponse
+//	@Failure		500			{object}	ErrorResponse
+//	@Security		BearerAuth
+//	@Router			/api/calendars [post]
 func (h *CalendarHandler) CreateCalendar(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
@@ -59,6 +73,17 @@ func (h *CalendarHandler) CreateCalendar(w http.ResponseWriter, r *http.Request)
 }
 
 // GetCalendars handles GET /api/calendars
+//
+//	@Summary		Get user calendars
+//	@Description	Retrieve all calendars for the authenticated user
+//	@Tags			calendars
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{array}		services.CalendarResponse
+//	@Failure		401	{object}	ErrorResponse
+//	@Failure		500	{object}	ErrorResponse
+//	@Security		BearerAuth
+//	@Router			/api/calendars [get]
 func (h *CalendarHandler) GetCalendars(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
@@ -83,6 +108,21 @@ func (h *CalendarHandler) GetCalendars(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetCalendar handles GET /api/calendars/{id}
+//
+//	@Summary		Get calendar by ID
+//	@Description	Retrieve a specific calendar by ID (user must own the calendar)
+//	@Tags			calendars
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"Calendar ID"
+//	@Success		200	{object}	services.CalendarResponse
+//	@Failure		400	{object}	ErrorResponse
+//	@Failure		401	{object}	ErrorResponse
+//	@Failure		403	{object}	ErrorResponse
+//	@Failure		404	{object}	ErrorResponse
+//	@Failure		500	{object}	ErrorResponse
+//	@Security		BearerAuth
+//	@Router			/api/calendars/{id} [get]
 func (h *CalendarHandler) GetCalendar(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
@@ -122,6 +162,23 @@ func (h *CalendarHandler) GetCalendar(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateCalendar handles PUT /api/calendars/{id}
+//
+//	@Summary		Update calendar
+//	@Description	Update calendar name and description (user must own the calendar)
+//	@Tags			calendars
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string							true	"Calendar ID"
+//	@Param			calendar	body		services.UpdateCalendarRequest	true	"Calendar update request"
+//	@Success		200		{object}	services.CalendarResponse
+//	@Failure		400		{object}	ErrorResponse
+//	@Failure		401		{object}	ErrorResponse
+//	@Failure		403		{object}	ErrorResponse
+//	@Failure		404		{object}	ErrorResponse
+//	@Failure		409		{object}	ErrorResponse
+//	@Failure		500		{object}	ErrorResponse
+//	@Security		BearerAuth
+//	@Router			/api/calendars/{id} [put]
 func (h *CalendarHandler) UpdateCalendar(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
 		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
@@ -171,6 +228,21 @@ func (h *CalendarHandler) UpdateCalendar(w http.ResponseWriter, r *http.Request)
 }
 
 // DeleteCalendar handles DELETE /api/calendars/{id}
+//
+//	@Summary		Delete calendar
+//	@Description	Delete a calendar and all associated data (user must own the calendar)
+//	@Tags			calendars
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path	string	true	"Calendar ID"
+//	@Success		204	"No Content"
+//	@Failure		400	{object}	ErrorResponse
+//	@Failure		401	{object}	ErrorResponse
+//	@Failure		403	{object}	ErrorResponse
+//	@Failure		404	{object}	ErrorResponse
+//	@Failure		500	{object}	ErrorResponse
+//	@Security		BearerAuth
+//	@Router			/api/calendars/{id} [delete]
 func (h *CalendarHandler) DeleteCalendar(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
