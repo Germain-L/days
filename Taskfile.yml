@@ -2,124 +2,63 @@
 
 version: '3'
 
+includes:
+  backend:
+    taskfile: ./backend/Taskfile.yml
+    dir: ./backend
+  app:
+    taskfile: ./app/Taskfile.yml
+    dir: ./app
+    aliases: [android]
+
 vars:
   GREETING: Hello, World!
 
 tasks:
   default:
+    desc: Show available tasks
     cmds:
       - echo "{{.GREETING}}"
+      - echo ""
+      - echo "Available task namespaces:"
+      - echo "  backend:* - Backend Go server tasks"
+      - echo "  app:* (or android:*) - Android app tasks"
+      - echo ""
+      - echo "Common workflows:"
+      - echo "  task backend:dev     - Run backend in development mode"
+      - echo "  task app:dev         - Android development workflow"
+      - echo "  task backend:test    - Run backend tests"
+      - echo "  task app:test        - Run Android tests"
+      - echo ""
+      - echo "Use 'task --list' to see all available tasks"
     silent: true
 
-  # Backend tasks
-  backend:build:
-    desc: Build the backend server
-    dir: backend
+  dev:
+    desc: Start both backend and Android development
+    deps:
+      - backend:swagger
     cmds:
-      - go build -o days-server.exe cmd/server/main.go
-    sources:
-      - "**/*.go"
-      - go.mod
-      - go.sum
-    generates:
-      - days-server.exe
+      - echo "Starting development environment..."
+      - echo "Backend - http://localhost:8080"
+      - echo "Swagger docs - http://localhost:8080/swagger/"
+      - echo ""
+      - echo "To run Android app:"
+      - echo "  task app:dev"
 
-  backend:test:
-    desc: Run backend tests with coverage
-    dir: backend
-    env:
-      GO_ENV: test
-      JWT_SECRET: test-secret-for-all-tests
+  test:
+    desc: Run all tests (backend + Android)
     cmds:
-      - go mod tidy
-      - go vet ./...
-      - go build ./...
-      - go test -v -coverprofile=coverage.out ./...
-      - go tool cover -html=coverage.out -o coverage.html
-      - go tool cover -func=coverage.out
+      - task: backend:test
+      - task: app:test
 
-  backend:test:unit:
-    desc: Run only unit tests (fast)
-    dir: backend
-    env:
-      GO_ENV: test
-      JWT_SECRET: test-secret-for-all-tests
+  clean:
+    desc: Clean all build artifacts
     cmds:
-      - go test -short ./...
+      - task: backend:clean
+      - task: app:clean
 
-  backend:test:race:
-    desc: Run tests with race detection (requires CGO)
-    dir: backend
-    env:
-      GO_ENV: test
-      JWT_SECRET: test-secret-for-all-tests
-      CGO_ENABLED: 1
+  build:
+    desc: Build both backend and Android app
     cmds:
-      - go mod tidy
-      - go vet ./...
-      - go build ./...
-      - go test -v -race -coverprofile=coverage.out ./...
-      - go tool cover -html=coverage.out -o coverage.html
-      - go tool cover -func=coverage.out
-
-  backend:test:integration:
-    desc: Run integration tests
-    dir: backend
-    env:
-      GO_ENV: test
-      JWT_SECRET: test-secret-for-all-tests
-    cmds:
-      - go test -v ./... -tags=integration
-
-  backend:swagger:
-    desc: Generate Swagger documentation
-    dir: backend
-    cmds:
-      - swag init -g cmd/server/main.go
-      - echo "✅ Swagger documentation generated!"
-      - echo "📁 Generated files:"
-      - echo "   - docs/docs.go"
-      - echo "   - docs/swagger.json"
-      - echo "   - docs/swagger.yaml"
-      - echo "🚀 Start the server and visit http://localhost:8080/swagger/ to view docs"
-    sources:
-      - "**/*.go"
-    generates:
-      - docs/docs.go
-      - docs/swagger.json
-      - docs/swagger.yaml
-
-  backend:run:
-    desc: Run the backend server
-    dir: backend
-    cmds:
-      - go run cmd/server/main.go
-
-  backend:dev:
-    desc: Run backend in development mode with auto-reload
-    dir: backend
-    cmds:
-      - task: backend:swagger
-      - task: backend:run
-
-  backend:clean:
-    desc: Clean backend build artifacts
-    dir: backend
-    cmds:
-      - rm -f days-server.exe main.exe
-      - rm -f coverage.out coverage.html
-      - rm -rf docs/
-
-  backend:deps:
-    desc: Install/update backend dependencies
-    dir: backend
-    cmds:
-      - go mod tidy
-      - go mod download
-
-  backend:lint:
-    desc: Run linting checks
-    dir: backend
-    cmds:
-      - go vet ./...
-      - go fmt ./...
+      - task: backend:build
+      - task: app:build
