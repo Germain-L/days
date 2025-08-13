@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: days
+data:
+  DB_HOST: "postgres-service"
+  DB_PORT: "5432"
+  DB_USER: "days"
+  DB_NAME: "days"
+  DB_SSLMODE: "disable"
+  PORT: "8080"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backend-secrets
+  namespace: days
+type: Opaque
+data:
+  # Base64 encoded values - change these in production!
+  # DB_PASSWORD = "password" (base64: cGFzc3dvcmQ=)
+  # JWT_SECRET = "your_jwt_secret_here_change_in_production" (base64: eW91cl9qd3Rfc2VjcmV0X2hlcmVfY2hhbmdlX2luX3Byb2R1Y3Rpb24=)
+  DB_PASSWORD: cGFzc3dvcmQ=
+  JWT_SECRET: eW91cl9qd3Rfc2VjcmV0X2hlcmVfY2hhbmdlX2luX3Byb2R1Y3Rpb24=

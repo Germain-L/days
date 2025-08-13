@@ -1,0 +1,178 @@
+# Kubernetes Taskfile
+version: '3'
+
+vars:
+  NAMESPACE: days
+  IMAGE_TAG: latest
+  REGISTRY: registry.germainleignel.com/personal/days
+
+tasks:
+  docker:build:
+    desc: Build Docker image
+    cmds:
+      - docker build -t {{.REGISTRY}}:{{.IMAGE_TAG}} ../backend
+    dir: .
+
+  docker:push:
+    desc: Push Docker image
+    cmds:
+      - docker push {{.REGISTRY}}:{{.IMAGE_TAG}}
+    dir: .
+
+  apply:
+    desc: Apply all Kubernetes configurations
+    cmds:
+      - kubectl create namespace {{.NAMESPACE}} --dry-run=client -o yaml | kubectl apply -f -
+      - kubectl apply -f configmap.yaml
+      - kubectl apply -f deployment.yaml
+      - kubectl apply -f postgres.yaml
+      - kubectl apply -f service.yaml
+      - kubectl apply -f certificate.yaml
+      - kubectl apply -f ingress.yaml
+    dir: .
+
+  delete:
+    desc: Delete all Kubernetes resources
+    cmds:
+      - kubectl delete -f ingress.yaml --ignore-not-found=true
+      - kubectl delete -f certificate.yaml --ignore-not-found=true
+      - kubectl delete -f configmap.yaml --ignore-not-found=true
+      - kubectl delete -f deployment.yaml --ignore-not-found=true
+      - kubectl delete -f postgres.yaml --ignore-not-found=true
+      - kubectl delete -f service.yaml --ignore-not-found=true
+    dir: .
+
+  restart:
+    desc: Restart backend deployment
+    cmds:
+      - kubectl rollout restart deployment/backend-deployment -n {{.NAMESPACE}}
+
+  status:
+    desc: Show status of all resources
+    cmds:
+      - echo "=== Pods ==="
+      - kubectl get pods -n {{.NAMESPACE}}
+      - echo ""
+      - echo "=== Services ==="
+      - kubectl get services -n {{.NAMESPACE}}
+      - echo ""
+      - echo "=== Deployments ==="
+      - kubectl get deployments -n {{.NAMESPACE}}
+      - echo ""
+      - echo "=== PVCs ==="
+      - kubectl get pvc -n {{.NAMESPACE}}
+
+  logs:backend:
+    desc: Show backend logs
+    cmds:
+      - kubectl logs -f deployment/backend-deployment -n {{.NAMESPACE}}
+
+  logs:postgres:
+    desc: Show PostgreSQL logs
+    cmds:
+      - kubectl logs -f deployment/postgres-deployment -n {{.NAMESPACE}}
+
+  logs:migration:
+    desc: Show migration init container logs
+    cmds:
+      - |
+        POD=$(kubectl get pods -n {{.NAMESPACE}} -l app=backend -o jsonpath='{.items[0].metadata.name}')
+        kubectl logs $POD -n {{.NAMESPACE}} -c migration
+
+  shell:backend:
+    desc: Open shell in backend pod
+    cmds:
+      - |
+        POD=$(kubectl get pods -n {{.NAMESPACE}} -l app=backend -o jsonpath='{.items[0].metadata.name}')
+        kubectl exec -it $POD -n {{.NAMESPACE}} -- /bin/sh
+
+  shell:postgres:
+    desc: Open shell in PostgreSQL pod
+    cmds:
+      - |
+        POD=$(kubectl get pods -n {{.NAMESPACE}} -l app=postgres -o jsonpath='{.items[0].metadata.name}')
+        kubectl exec -it $POD -n {{.NAMESPACE}} -- /bin/sh
+
+  psql:
+    desc: Connect to PostgreSQL database
+    cmds:
+      - |
+        POD=$(kubectl get pods -n {{.NAMESPACE}} -l app=postgres -o jsonpath='{.items[0].metadata.name}')
+        kubectl exec -it $POD -n {{.NAMESPACE}} -- psql -U days -d days
+
+  port-forward:backend:
+    desc: Port forward backend service to localhost:8080
+    cmds:
+      - kubectl port-forward service/backend-service 8080:8080 -n {{.NAMESPACE}}
+
+  port-forward:postgres:
+    desc: Port forward PostgreSQL service to localhost:5432
+    cmds:
+      - kubectl port-forward service/postgres-service 5432:5432 -n {{.NAMESPACE}}
+
+  deploy:
+    desc: Complete deployment workflow
+    cmds:
+      - echo "Building and pushing Docker image..."
+      - task: docker:build
+      - task: docker:push
+      - echo ""
+      - echo "Applying Kubernetes configurations..."
+      - task: apply
+      - echo ""
+      - echo "Waiting for deployment to be ready..."
+      - kubectl rollout status deployment/backend-deployment -n {{.NAMESPACE}}
+      - kubectl rollout status deployment/postgres-deployment -n {{.NAMESPACE}}
+      - echo ""
+      - echo "Deployment complete! Status:"
+      - task: status
+
+  redeploy:
+    desc: Redeploy backend (build image and restart)
+    cmds:
+      - echo "Building and pushing new Docker image..."
+      - task: docker:build
+      - task: docker:push
+      - echo ""
+      - echo "Restarting backend deployment..."
+      - task: restart
+      - echo ""
+      - echo "Waiting for rollout to complete..."
+      - kubectl rollout status deployment/backend-deployment -n {{.NAMESPACE}}
+      - echo ""
+      - echo "Redeploy complete! Status:"
+      - task: status
+
+  clean:
+    desc: Clean up all resources and namespace
+    cmds:
+      - task: delete
+      - kubectl delete namespace {{.NAMESPACE}} --ignore-not-found=true
+
+  debug:
+    desc: Debug deployment issues
+    cmds:
+      - echo "=== Backend Deployment Status ==="
+      - kubectl describe deployment backend-deployment -n {{.NAMESPACE}}
+      - echo ""
+      - echo "=== Backend Pod Status ==="
+      - kubectl describe pods -l app=backend -n {{.NAMESPACE}}
+      - echo ""
+      - echo "=== Recent Events ==="
+      - kubectl get events -n {{.NAMESPACE}} --sort-by='.lastTimestamp' | tail -10
+
+  test:
+    desc: Test backend health endpoint
+    cmds:
+      - |
+        echo "Testing backend health endpoint..."
+        kubectl port-forward service/backend-service 8080:8080 -n {{.NAMESPACE}} &
+        PF_PID=$!
+        sleep 3
+        curl -f http://localhost:8080/health || echo "Health check failed"
+        kill $PF_PID 2>/dev/null || true
+
+  watch:
+    desc: Watch pods status in real-time
+    cmds:
+      - kubectl get pods -n {{.NAMESPACE}} -w

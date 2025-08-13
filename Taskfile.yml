@@ -10,6 +10,10 @@ includes:
     taskfile: ./app/Taskfile.yml
     dir: ./app
     aliases: [android]
+  k8s:
+    taskfile: ./k8s/Taskfile.yml
+    dir: ./k8s
+    aliases: [kubernetes, deploy]
 
 vars:
   GREETING: Hello, World!
@@ -23,12 +27,15 @@ tasks:
       - echo "Available task namespaces:"
       - echo "  backend:* - Backend Go server tasks"
       - echo "  app:* (or android:*) - Android app tasks"
+      - echo "  k8s:* (or deploy:*) - Kubernetes deployment tasks"
       - echo ""
       - echo "Common workflows:"
       - echo "  task backend:dev     - Run backend in development mode"
       - echo "  task app:dev         - Android development workflow"
-      - echo "  task backend:test    - Run backend tests"
-      - echo "  task app:test        - Run Android tests"
+      - echo "  task k8s:deploy      - Full deployment to Kubernetes"
+      - echo "  task k8s:redeploy    - Rebuild and redeploy backend"
+      - echo "  task k8s:status      - Show Kubernetes resource status"
+      - echo "  task k8s:logs:backend - Show backend logs"
       - echo ""
       - echo "Use 'task --list' to see all available tasks"
     silent: true
@@ -62,3 +69,23 @@ tasks:
     cmds:
       - task: backend:build
       - task: app:build
+
+  deploy:
+    desc: Deploy to Kubernetes (full workflow)
+    cmds:
+      - task: k8s:deploy
+
+  redeploy:
+    desc: Rebuild and redeploy backend to Kubernetes
+    cmds:
+      - task: k8s:redeploy
+
+  status:
+    desc: Show Kubernetes deployment status
+    cmds:
+      - task: k8s:status
+
+  logs:
+    desc: Show backend logs from Kubernetes
+    cmds:
+      - task: k8s:logs:backend
