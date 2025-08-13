@@ -31,7 +31,7 @@ fun DayTrackerApp() {
     } else null
     
     val authState by (sessionManager?.authState?.collectAsState() 
-        ?: mutableStateOf(UserSessionManager.AuthState.Authenticated))
+        ?: remember { mutableStateOf(UserSessionManager.AuthState.Authenticated) })
 
     // Determine if we should use dark theme
     val useDarkTheme = if (settings.followSystemTheme) {
