@@ -1,35 +1,19 @@
-name: Full CI
+name: Android CI
 
 on:
   push:
     branches: [ main ]
+    paths: 
+      - 'app/**'
+      - '.github/workflows/ci.yml'
   pull_request:
     branches: [ main ]
+    paths: 
+      - 'app/**'
+      - '.github/workflows/ci.yml'
 
 jobs:
-  backend:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: '1.23'
-        
-    - name: Test Backend
-      working-directory: ./backend
-      env:
-        GO_ENV: test
-        JWT_SECRET: test-secret-for-github-actions
-      run: |
-        go mod download
-        go vet ./...
-        go test -v ./...
-        go build -v ./...
-
-  android:
+  test-and-build:
     runs-on: ubuntu-latest
     
     steps:
@@ -50,32 +34,32 @@ jobs:
         key: ${{ runner.os }}-gradle-${{ hashFiles('app/**/*.gradle*', 'app/**/gradle-wrapper.properties') }}
         restore-keys: |
           ${{ runner.os }}-gradle-
-        
+    
     - name: Grant execute permission for gradlew
       working-directory: ./app
       run: chmod +x gradlew
     
-    - name: Test Android
+    - name: Run lint
       working-directory: ./app
-      run: |
-        ./gradlew lint
-        ./gradlew test
-
-  # This job will only run if both backend and android jobs succeed
-  status-check:
-    runs-on: ubuntu-latest
-    needs: [backend, android]
-    if: always()
+      run: ./gradlew lint
     
-    steps:
-    - name: Check overall status
-      run: |
-        if [ "${{ needs.backend.result }}" = "success" ] && [ "${{ needs.android.result }}" = "success" ]; then
-          echo "✅ All tests passed!"
-          exit 0
-        else
-          echo "❌ Some tests failed:"
-          echo "  Backend: ${{ needs.backend.result }}"
-          echo "  Android: ${{ needs.android.result }}"
-          exit 1
-        fi
+    - name: Run unit tests
+      working-directory: ./app
+      run: ./gradlew test
+    
+    - name: Build release APK
+      working-directory: ./app
+      run: ./gradlew assembleRelease
+    
+    - name: Upload release APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-apk
+        path: app/app/build/outputs/apk/release/*.apk
+    
+    - name: Upload lint results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: lint-results
+        path: app/app/build/reports/lint-results*
