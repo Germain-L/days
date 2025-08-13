@@ -15,7 +15,27 @@ services:
     image: adminer
     restart: always
     ports:
+      - "8081:8080"
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
       - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=days
+      - DB_PASSWORD=password
+      - DB_NAME=days
+      - DB_SSLMODE=disable
+
+      # Server Configuration
+      - PORT=8080
+      - JWT_SECRET=your_jwt_secret_here_change_in_production
 
 volumes:
   db_data:
