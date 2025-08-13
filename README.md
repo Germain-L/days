@@ -11,6 +11,7 @@ A modern full-stack application for tracking your days with a Go backend and And
 This project consists of two main components:
 
 ### 🖥️ Backend (Go)
+
 - **REST API** server built with Go
 - **PostgreSQL** database with migrations
 - **JWT Authentication** for secure access
@@ -18,6 +19,7 @@ This project consists of two main components:
 - **Comprehensive testing** with coverage reports
 
 ### 📱 Frontend (Android)
+
 - **Modern Android app** built with Jetpack Compose
 - **Interactive calendar** interface
 - **Material 3 design** with dark/light theme support
@@ -54,6 +56,7 @@ task build                 # Builds both backend and Android
 ### Manual Setup
 
 #### Backend Setup
+
 ```bash
 cd backend
 
@@ -68,6 +71,7 @@ go run cmd/server/main.go
 ```
 
 #### Android Setup
+
 ```bash
 cd app
 
@@ -90,6 +94,7 @@ Our GitHub Actions workflows automatically:
 - **Full CI**: Combined status check for both components
 
 Local testing:
+
 ```bash
 # Test backend
 task backend:test
@@ -110,6 +115,7 @@ task test
 ## 🛠️ Development
 
 ### Backend Development
+
 ```bash
 task backend:dev    # Auto-reloading server with swagger docs
 task backend:test   # Run tests with coverage
@@ -117,6 +123,7 @@ task backend:lint   # Run go vet and formatting
 ```
 
 ### Android Development  
+
 ```bash
 task app:dev        # Clean build, install and run
 task app:test       # Unit tests and lint
@@ -125,7 +132,7 @@ task app:build      # Debug build
 
 ## 📦 Project Structure
 
-```
+```tree
 .
 ├── .github/workflows/     # GitHub Actions CI/CD
 ├── backend/              # Go REST API server
@@ -143,6 +150,7 @@ task app:build      # Debug build
 ## 🔧 Technologies
 
 ### Backend
+
 - **Go 1.23** - Modern, efficient backend language
 - **PostgreSQL** - Reliable database with ACID compliance
 - **JWT** - Secure authentication tokens
@@ -150,6 +158,7 @@ task app:build      # Debug build
 - **SQLC** - Type-safe SQL code generation
 
 ### Android
+
 - **Kotlin** - Modern Android development language
 - **Jetpack Compose** - Declarative UI toolkit
 - **Material 3** - Latest Material Design system
@@ -157,6 +166,7 @@ task app:build      # Debug build
 - **Coroutines & Flow** - Reactive programming
 
 ### DevOps
+
 - **GitHub Actions** - Automated CI/CD pipelines
 - **Task** - Cross-platform task runner
 - **Docker** - Containerization for backend services
