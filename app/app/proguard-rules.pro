@@ -65,3 +65,15 @@
     volatile <fields>;
 }
 -keepclassmembers class kotlinx.coroutines.** { *; }
+
+# Keep ErrorProne annotations (required by Tink crypto library)
+-dontwarn com.google.errorprone.annotations.**
+-keep class com.google.errorprone.annotations.** { *; }
+
+# Keep Tink crypto library classes
+-keep class com.google.crypto.tink.** { *; }
+-dontwarn com.google.crypto.tink.**
+
+# Keep EncryptedSharedPreferences related classes
+-keep class androidx.security.crypto.** { *; }
+-dontwarn androidx.security.crypto.**
