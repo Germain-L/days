@@ -1,6 +1,8 @@
 package com.germainleignel.days.storage
 
 import android.content.Context
+import com.germainleignel.days.api.auth.UserSessionManager
+import com.germainleignel.days.api.repository.ApiDataRepository
 
 /**
  * Factory to create data repository instances.
@@ -10,6 +12,9 @@ object RepositoryFactory {
 
     @Volatile
     private var INSTANCE: DataRepository? = null
+
+    @Volatile
+    private var sessionManager: UserSessionManager? = null
 
     /**
      * Get the current repository instance.
@@ -31,6 +36,44 @@ object RepositoryFactory {
     }
 
     /**
+     * Create an API-based repository
+     */
+    fun createApiRepository(context: Context): DataRepository {
+        val session = getSessionManager(context)
+        val localRepo = createLocalRepository(context)
+        return ApiDataRepository(session, localRepo as LocalDataRepository)
+    }
+
+    /**
+     * Get or create the session manager
+     */
+    fun getSessionManager(context: Context): UserSessionManager {
+        return sessionManager ?: synchronized(this) {
+            val instance = sessionManager ?: UserSessionManager(context.applicationContext)
+            sessionManager = instance
+            instance
+        }
+    }
+
+    /**
+     * Switch to API repository mode
+     */
+    fun switchToApiMode(context: Context) {
+        synchronized(this) {
+            INSTANCE = createApiRepository(context)
+        }
+    }
+
+    /**
+     * Switch to local repository mode
+     */
+    fun switchToLocalMode(context: Context) {
+        synchronized(this) {
+            INSTANCE = createLocalRepository(context)
+        }
+    }
+
+    /**
      * Switch to a different repository implementation
      * (e.g., when backend becomes available)
      */
@@ -46,6 +89,7 @@ object RepositoryFactory {
     fun resetRepository() {
         synchronized(this) {
             INSTANCE = null
+            sessionManager = null
         }
     }
 
